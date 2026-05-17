@@ -19,42 +19,97 @@ The baseline model focuses on classification performance, while the extended pip
 
 ## Mathematical Formulation
 
-The task is modeled as a binary image classification problem. Given an input face image \(x_i\), the model predicts whether the image belongs to the real class or fake class:
+The task is modeled as a binary classification problem. Given an input face image $x_i$, the model predicts whether the image is real or fake:
 
-\[
+$$
 y_i \in \{0, 1\}
-\]
+$$
 
 where:
 
-\[
+$$
 0 = \text{real face}, \qquad 1 = \text{fake / AI-generated face}
-\]
+$$
 
 The model produces logits:
 
-\[
+$$
 z = f_\theta(x)
-\]
+$$
 
-and converts them into class probabilities using the softmax function:
+These logits are converted into class probabilities using the softmax function:
 
-\[
+$$
 p(y=c \mid x) = \frac{e^{z_c}}{\sum_{j=1}^{C} e^{z_j}}
-\]
+$$
 
-For binary classification, the model is trained using cross-entropy loss:
+The models are trained using cross-entropy loss:
 
-\[
-\mathcal{L} = - \frac{1}{N} \sum_{i=1}^{N} \sum_{c=1}^{C} y_{i,c} \log(\hat{y}_{i,c})
-\]
+$$
+\mathcal{L} = -\frac{1}{N}\sum_{i=1}^{N}\sum_{c=1}^{C} y_{i,c}\log(\hat{y}_{i,c})
+$$
 
-where:
+where $N$ is the number of samples, $C$ is the number of classes, $y_{i,c}$ is the true label, and $\hat{y}_{i,c}$ is the predicted probability.
 
-- \(N\) is the number of training samples
-- \(C\) is the number of classes
-- \(y_{i,c}\) is the true label
-- \(\hat{y}_{i,c}\) is the predicted probability
+## Grad-CAM Formulation
+
+For the ResNet model, Grad-CAM highlights the image regions that most strongly influence the prediction. For a target class $c$, the importance weight for feature map $A^k$ is computed as:
+
+$$
+\alpha_k^c = \frac{1}{Z}\sum_i\sum_j \frac{\partial y^c}{\partial A_{ij}^k}
+$$
+
+The final Grad-CAM heatmap is:
+
+$$
+L_{\text{Grad-CAM}}^c = \text{ReLU}\left(\sum_k \alpha_k^c A^k\right)
+$$
+
+This produces a class-specific heatmap showing which spatial regions contributed most to the model's decision.
+
+## Attention Rollout Formulation
+
+For the Vision Transformer, attention rollout is used to estimate how information flows from image patches to the final classification token.
+
+Each transformer layer produces an attention matrix $A_l$. To account for residual connections, the attention matrix is adjusted as:
+
+$$
+\tilde{A}_l = \frac{A_l + I}{2}
+$$
+
+The final rollout map is computed by multiplying attention matrices across all layers:
+
+$$
+R = \tilde{A}_1 \tilde{A}_2 \cdots \tilde{A}_L
+$$
+
+where $L$ is the number of transformer layers. The resulting map estimates how strongly each image patch contributes to the final prediction.
+
+## Evaluation Metrics
+
+Accuracy:
+
+$$
+\text{Accuracy} = \frac{TP + TN}{TP + TN + FP + FN}
+$$
+
+Precision:
+
+$$
+\text{Precision} = \frac{TP}{TP + FP}
+$$
+
+Recall:
+
+$$
+\text{Recall} = \frac{TP}{TP + FN}
+$$
+
+F1-score:
+
+$$
+F_1 = 2 \cdot \frac{\text{Precision} \cdot \text{Recall}}{\text{Precision} + \text{Recall}}
+$$
 
 ## Main Goals
 
